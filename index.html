@@ -837,8 +837,8 @@ html[data-theme="light"] .shape{display:block}
   </div>
 </footer>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
 
 <script>
 (function(){
@@ -872,18 +872,6 @@ html[data-theme="light"] .shape{display:block}
   /* ---- firebase auth + instant hub ---- */
   var HUB = 'https://maqsudjon-cell.github.io/ielts-hub/';
   var auth = null;
-  try{
-    firebase.initializeApp({
-      apiKey: "AIzaSyAqS59ek0seZ0rcSZb3RPhiwTzleIAZ-9E",
-      authDomain: "ieltshub-e2aa8.firebaseapp.com",
-      projectId: "ieltshub-e2aa8",
-      storageBucket: "ieltshub-e2aa8.firebasestorage.app",
-      messagingSenderId: "645780307385",
-      appId: "1:645780307385:web:1dc8640e294be2204b4a68",
-      measurementId: "G-N0DBRBZ1EQ"
-    });
-    auth = firebase.auth();
-  }catch(err){ auth = null; }
 
   function goHub(){ window.location.href = HUB; }
   function startFlow(e){
@@ -924,7 +912,22 @@ html[data-theme="light"] .shape{display:block}
       else{ auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(){}); }
     });
   }
-  if(auth){ auth.onAuthStateChanged(renderAuth); } else { renderAuth(null); }
+  renderAuth(null);
+  document.addEventListener('DOMContentLoaded', function(){
+    try{
+      firebase.initializeApp({
+        apiKey: "AIzaSyAqS59ek0seZ0rcSZb3RPhiwTzleIAZ-9E",
+        authDomain: "ieltshub-e2aa8.firebaseapp.com",
+        projectId: "ieltshub-e2aa8",
+        storageBucket: "ieltshub-e2aa8.firebasestorage.app",
+        messagingSenderId: "645780307385",
+        appId: "1:645780307385:web:1dc8640e294be2204b4a68",
+        measurementId: "G-N0DBRBZ1EQ"
+      });
+      auth = firebase.auth();
+      auth.onAuthStateChanged(renderAuth);
+    }catch(err){ auth = null; }
+  });
 
   /* nav border */
   var nav = document.getElementById('nav');
