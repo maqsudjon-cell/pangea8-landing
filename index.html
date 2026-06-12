@@ -535,6 +535,10 @@ html[data-theme="light"] .shape{display:block}
 .sh-plus::after{top:50%;left:0;right:0;height:1.5px;transform:translateY(-50%)}
 @keyframes shfloat{0%,100%{opacity:0;transform:translateY(8px) rotate(0deg)}20%,80%{opacity:1}50%{transform:translateY(-14px) rotate(12deg)}}
 
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(16px);background:#0F1613;color:var(--text);border:1px solid var(--line-2);padding:12px 18px;border-radius:12px;font-size:.9rem;z-index:80;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;max-width:min(90vw,420px);text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+html[data-theme="light"] .toast{background:#fff;box-shadow:0 10px 30px -10px rgba(15,42,33,.3)}
+
 /* ============ reveal ============ */
 
 [data-reveal]{opacity:0;transform:translateY(26px);filter:blur(8px);
@@ -873,14 +877,34 @@ html[data-theme="light"] .shape{display:block}
   /* ---- firebase auth + instant hub ---- */
   var HUB = 'https://maqsudjon-cell.github.io/ielts-hub/';
   var auth = null;
+  function inApp(){
+    return /Telegram|FBAN|FBAV|FB_IAB|Instagram|Line\/|WhatsApp|; wv\)/i.test(navigator.userAgent || '');
+  }
+  var toastEl = null, toastT = null;
+  function toast(msg){
+    if(!toastEl){ toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+    toastEl.textContent = msg;
+    requestAnimationFrame(function(){ toastEl.classList.add('show'); });
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ toastEl.classList.remove('show'); }, 4500);
+  }
+  function authErr(e){
+    var c = (e && e.code) || '';
+    if(c === 'auth/unauthorized-domain') return 'Sign-in error: pangea8.com is not in Firebase authorized domains.';
+    if(c === 'auth/operation-not-allowed') return 'Sign-in error: Google provider is not enabled in Firebase Console.';
+    return 'Sign-in failed' + (c ? ': ' + c.replace('auth/', '') : '');
+  }
 
   function goHub(){ window.location.href = HUB; }
   function startFlow(e){
     if(e) e.preventDefault();
-    if(!auth || auth.currentUser){ goHub(); return; }
+    if(!auth || auth.currentUser || inApp()){ goHub(); return; }
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
       .then(goHub)
-      .catch(goHub); /* never block practice */
+      .catch(function(err){
+        if(err && err.code) console.warn('signin:', err.code);
+        goHub(); /* never block practice */
+      });
   }
   document.querySelectorAll('.go-hub').forEach(function(a){
     a.addEventListener('click', startFlow);
@@ -908,9 +932,21 @@ html[data-theme="light"] .shape{display:block}
   if(authBtn){
     authBtn.addEventListener('click', function(e){
       e.preventDefault();
-      if(!auth) return;
-      if(auth.currentUser){ auth.signOut(); }
-      else{ auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(){}); }
+      if(!auth){ return; }
+      if(auth.currentUser){ auth.signOut(); return; }
+      if(inApp()){
+        toast("Google sign-in doesn't work inside this app's browser. Open pangea8.com in Chrome or Safari.");
+        return;
+      }
+      var prov = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(prov).catch(function(err){
+        var c = (err && err.code) || '';
+        if(c === 'auth/popup-blocked' || c === 'auth/cancelled-popup-request' || c === 'auth/operation-not-supported-in-this-environment'){
+          auth.signInWithRedirect(prov).catch(function(e2){ toast(authErr(e2)); });
+        } else if(c !== 'auth/popup-closed-by-user'){
+          toast(authErr(err));
+        }
+      });
     });
   }
   renderAuth(null);
@@ -927,6 +963,7 @@ html[data-theme="light"] .shape{display:block}
       });
       auth = firebase.auth();
       auth.onAuthStateChanged(renderAuth);
+      auth.getRedirectResult().catch(function(err){ if(err && err.code) console.warn('redirect:', err.code); });
     }catch(err){ auth = null; }
   });
 
