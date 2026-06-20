@@ -991,6 +991,20 @@ html[data-theme="light"] .toast{background:#fff;box-shadow:0 10px 30px -10px rgb
       });
     });
   }
+
+  // ---- light/dark theme toggle ----
+  (function(){
+    var tb = document.getElementById('themeBtn');
+    if(!tb) return;
+    tb.addEventListener('click', function(){
+      var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      var next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try{ localStorage.setItem('p8-theme', next); }catch(e){}
+      var tc = document.querySelector('meta[name="theme-color"]');
+      if(tc) tc.setAttribute('content', next === 'light' ? '#f6f8f7' : '#060A09');
+    });
+  })();
   renderAuth(null);
   document.addEventListener('DOMContentLoaded', function(){
     try{
